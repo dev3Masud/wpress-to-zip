@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WPress to ZIP — convert .wpress backups in your browser</title>
+  <meta name="description" content="Convert All-in-One WP Migration (.wpress) backups to .zip entirely in your browser. No uploads, no accounts, nothing stored." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Cpath d='M9 21l7-12 7 12h-4v4h-6v-4z' fill='white'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="jszip.min.js" defer></script>
+  <script src="wpress.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">
+        <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#2563eb"/><path d="M9 21l7-12 7 12h-4v4h-6v-4z" fill="white"/></svg>
+        <div>
+          <h1>WPress to ZIP</h1>
+          <p class="tagline">Convert All-in-One WP Migration backups, right in your browser.</p>
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge">100% client-side</span>
+        <span class="badge">No uploads</span>
+        <span class="badge">Nothing stored</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card" id="dropzone" aria-label="Select a .wpress file">
+      <div class="drop-inner">
+        <p class="drop-title">Drop your <code>.wpress</code> file here</p>
+        <p class="muted">or</p>
+        <button class="btn" id="browseBtn" type="button">Choose file</button>
+        <input type="file" id="fileInput" accept=".wpress,application/octet-stream" hidden />
+        <p class="muted small">Your file never leaves this device. Large backups (200&nbsp;MB+) need a desktop browser with ~1&nbsp;GB free RAM.</p>
+      </div>
+    </section>
+
+    <section class="card error" id="errorCard" hidden role="alert">
+      <strong>Something came up.</strong>
+      <p id="errorMsg"></p>
+    </section>
+
+    <section class="card" id="fileCard" hidden>
+      <h2>Backup</h2>
+      <div class="file-row">
+        <div>
+          <p class="file-name" id="fileName">—</p>
+          <p class="muted" id="fileSize">—</p>
+        </div>
+        <button class="btn ghost" id="resetBtn" type="button">Remove</button>
+      </div>
+      <p id="archiveMeta" class="mono"></p>
+      <p id="packageMeta" class="muted"></p>
+      <div class="filter-row">
+        <label for="filterInput">Filter files</label>
+        <input type="search" id="filterInput" placeholder="e.g. uploads/2024 or database.sql" autocomplete="off" />
+      </div>
+      <div class="table-wrap">
+        <table id="previewTable">
+          <thead><tr><th>Path in archive</th><th class="num">Size</th><th class="num">Modified</th></tr></thead>
+          <tbody id="previewBody"></tbody>
+        </table>
+      </div>
+      <p class="muted small" id="previewNote"></p>
+    </section>
+
+    <section class="card" id="optionsCard" hidden>
+      <h2>ZIP options</h2>
+      <div class="grid">
+        <div class="field">
+          <label for="outputName">Output filename</label>
+          <input type="text" id="outputName" value="archive.zip" spellcheck="false" />
+        </div>
+        <div class="field">
+          <label for="compression">Compression</label>
+          <select id="compression">
+            <option value="6" selected>Balanced (level 6, recommended)</option>
+            <option value="1">Fast (level 1)</option>
+            <option value="9">Maximum (level 9, slower)</option>
+            <option value="0">Store only (no compression, fastest)</option>
+          </select>
+        </div>
+      </div>
+      <label class="check">
+        <input type="checkbox" id="storeMedia" checked />
+        Skip recompressing photos, video, audio and PDFs (faster, same size)
+      </label>
+      <button class="btn primary big" id="convertBtn" type="button">Convert to ZIP</button>
+    </section>
+
+    <section class="card" id="progressCard" hidden aria-live="polite">
+      <h2>Working…</h2>
+      <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <p id="progressLabel" class="mono"></p>
+      <p id="progressDetail" class="muted small"></p>
+    </section>
+
+    <section class="card success" id="resultCard" hidden>
+      <h2>Your ZIP is ready</h2>
+      <p id="resultMeta" class="muted"></p>
+      <div class="row">
+        <a class="btn primary big" id="downloadBtn" href="#">Download ZIP</a>
+        <button class="btn ghost" id="againBtn" type="button">Convert another</button>
+      </div>
+      <p class="muted small">The download link is a temporary object in this tab's memory. Reload or convert another file and it is gone.</p>
+    </section>
+
+    <section class="card">
+      <h2>How it works</h2>
+      <ol class="how">
+        <li><strong>Scan.</strong> The app reads the 4,377-byte header before every file (name, size, date, path) and maps the archive. File contents are referenced as slices — not loaded yet.</li>
+        <li><strong>Zip.</strong> Each entry is handed to the ZIP writer straight from the original file bytes and compressed locally.</li>
+        <li><strong>Download.</strong> A temporary link is created for the finished ZIP. No server, no queue, no retention.</li>
+      </ol>
+      <h3>Limitations</h3>
+      <ul class="muted">
+        <li>Plain (free-version) backups only. Backups with Pro chunk compression or password encryption are detected and refused with an explanation.</li>
+        <li>Very large sites need RAM roughly 3–4× the backup size during compression.</li>
+        <li>File dates are preserved; CRC integrity values from the archive are informational.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p class="muted small">Static site — no backend, no analytics, no cookies. Deploy anywhere static files work.</p>
+    </div>
+  </footer>
+</body>
+</html>

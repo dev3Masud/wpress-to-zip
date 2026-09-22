@@ -1,0 +1,14 @@
+# No build step: this is a plain static site (index.html + css + js).
+[build]
+  publish = "."
+  command = "echo 'static site, nothing to build'"
+
+# Pretty URL + security headers. No CSP needed: zero external dependencies
+# (JSZip is vendored as jszip.min.js).
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "no-referrer"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
